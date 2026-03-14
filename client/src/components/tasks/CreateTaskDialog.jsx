@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import api from "../../api/http";
 
-const [address, setAddress] = useState("");
 
 const categories = [
   { value: "grocery", label: "Grocery" },
@@ -24,6 +23,7 @@ const categories = [
 ];
 
 export default function CreateTaskDialog({ open, onClose, onCreated }) {
+  const [address, setAddress] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("other");

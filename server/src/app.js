@@ -16,7 +16,10 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: true, // for now (later: lock to Netlify domain)
+    origin: [
+      "http://localhost:5173",
+      "https://kindnest-vamsi.netlify.app/"
+    ],
     credentials: true
   })
 );
@@ -29,6 +32,13 @@ app.get("/", (req, res) => res.json({ ok: true, message: "KindNest API is runnin
 app.use("/api/health", healthRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/admin", adminRoute);
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ ok: true });
+});
 
 app.use(notFound);
 app.use(errorHandler);

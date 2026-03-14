@@ -180,6 +180,11 @@ export default function TaskDetails() {
                 {task.description ? (
                   <Typography color="text.secondary">{task.description}</Typography>
                 ) : null}
+                {task.address ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Address: <b>{task.address}</b>
+                  </Typography>
+                ) : null}
 
                 <Divider />
 

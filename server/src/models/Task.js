@@ -4,6 +4,8 @@ const TaskSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, minlength: 3, maxlength: 120 },
     description: { type: String, trim: true, maxlength: 2000 },
+    address: { type: String, trim: true, maxlength: 250, default: "" },
+
 
     category: {
       type: String,

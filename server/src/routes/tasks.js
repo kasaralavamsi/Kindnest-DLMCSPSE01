@@ -5,10 +5,18 @@ const Task = require("../models/Task");
 const requireAuth = require("../middleware/requireAuth");
 const requireRole = require("../middleware/requireRole");
 
+async function getTaskWithRefs(id) {
+  return Task.findById(id)
+    .populate("requesterId", "name role")
+    .populate("volunteerId", "name role")
+    .populate("history.byUserId", "name role");
+}
+
 // Validation
 const CreateTaskSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().max(2000).optional().default(""),
+  address: z.string().max(250).optional().default(""),
   category: z
     .enum(["grocery", "pharmacy", "companionship", "transport", "household", "other"])
     .optional()
@@ -116,18 +124,22 @@ router.post("/", requireRole("requester", "admin"), async (req, res, next) => {
       return res.status(400).json({ ok: false, error: parsed.error.issues[0]?.message || "Invalid input" });
     }
 
-    const { title, description, category, neededBy } = parsed.data;
+    const { title, description, address, category, neededBy } = parsed.data;
+
 
     const task = await Task.create({
       title,
       description,
+      address,
       category,
       neededBy: neededBy ? new Date(neededBy) : null,
       requesterId: req.userId,
       history: [{ action: "CREATED", byUserId: req.userId }]
     });
 
-    res.status(201).json({ ok: true, task });
+    const populatedTask = await getTaskWithRefs(task._id);
+    res.status(201).json({ ok: true, task: populatedTask });
+
   } catch (err) {
     next(err);
   }
@@ -148,7 +160,9 @@ router.post("/:id/accept", requireRole("volunteer", "admin"), async (req, res, n
     task.history.push({ action: "ACCEPTED", byUserId: req.userId });
 
     await task.save();
-    res.json({ ok: true, task });
+    const populatedTask = await getTaskWithRefs(task._id);
+    res.json({ ok: true, task: populatedTask });
+
   } catch (err) {
     next(err);
   }
@@ -173,7 +187,9 @@ router.post("/:id/reject", requireRole("volunteer", "admin"), async (req, res, n
     task.history.push({ action: "REJECTED", byUserId: req.userId });
 
     await task.save();
-    res.json({ ok: true, task });
+    const populatedTask = await getTaskWithRefs(task._id);
+    res.json({ ok: true, task: populatedTask });
+
   } catch (err) {
     next(err);
   }
@@ -197,7 +213,9 @@ router.post("/:id/done", requireRole("volunteer", "admin"), async (req, res, nex
     task.history.push({ action: "DONE", byUserId: req.userId });
 
     await task.save();
-    res.json({ ok: true, task });
+    const populatedTask = await getTaskWithRefs(task._id);
+    res.json({ ok: true, task: populatedTask });
+
   } catch (err) {
     next(err);
   }
@@ -230,8 +248,10 @@ router.post("/:id/close", requireRole("requester", "admin"), async (req, res, ne
     task.tipAmount = tipAmount;
     task.history.push({ action: "CLOSED", byUserId: req.userId });
 
-    await task.save();
-    res.json({ ok: true, task });
+  await task.save();
+  const populatedTask = await getTaskWithRefs(task._id);
+  res.json({ ok: true, task: populatedTask });
+
   } catch (err) {
     next(err);
   }

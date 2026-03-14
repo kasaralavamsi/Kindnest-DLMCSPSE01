@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import api from "../../api/http";
 
+const [address, setAddress] = useState("");
+
 const categories = [
   { value: "grocery", label: "Grocery" },
   { value: "pharmacy", label: "Pharmacy" },
@@ -35,6 +37,7 @@ export default function CreateTaskDialog({ open, onClose, onCreated }) {
     setCategory("other");
     setNeededBy("");
     setError("");
+    setAddress("");
   }
 
   async function submit() {
@@ -44,6 +47,7 @@ export default function CreateTaskDialog({ open, onClose, onCreated }) {
       const payload = {
         title,
         description,
+        address,
         category,
         neededBy: neededBy ? new Date(neededBy).toISOString() : null
       };
@@ -82,6 +86,13 @@ export default function CreateTaskDialog({ open, onClose, onCreated }) {
             minRows={3}
             inputProps={{ maxLength: 2000 }}
             placeholder="Add helpful details (address, notes, preferred store, etc.)"
+          />
+          <TextField
+            label="Address (optional)"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            inputProps={{ maxLength: 250 }}
+            placeholder="Enter task location or pickup address"
           />
 
           <TextField select label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>

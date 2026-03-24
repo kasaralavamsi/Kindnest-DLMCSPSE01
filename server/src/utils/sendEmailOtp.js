@@ -1,21 +1,15 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 /**
- * Send a 6-digit OTP to the given email address via Gmail.
+ * Send a 6-digit OTP to the given email address via Resend.
  *
  * Required env vars:
- *   SMTP_EMAIL    – your Gmail address (e.g. kindnest.app@gmail.com)
- *   SMTP_PASSWORD – Gmail App Password (NOT your regular password)
- *                   Generate at: https://myaccount.google.com/apppasswords
+ *   RESEND_API_KEY  – from https://resend.com/api-keys
+ *   SMTP_EMAIL      – the "from" address (must be verified in Resend,
+ *                     or use onboarding@resend.dev for testing)
  */
 async function sendEmailOtp(toEmail, otp) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD   // Gmail App Password
-    }
-  });
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -30,13 +24,17 @@ async function sendEmailOtp(toEmail, otp) {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"KindNest" <${process.env.SMTP_EMAIL}>`,
+  const { error } = await resend.emails.send({
+    from: `KindNest <${process.env.SMTP_EMAIL || "onboarding@resend.dev"}>`,
     to: toEmail,
     subject: `${otp} – Your KindNest login code`,
     text: `Your KindNest OTP is ${otp}. It expires in 5 minutes. Do not share it with anyone.`,
-    html
+    html,
   });
+
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
 }
 
 module.exports = { sendEmailOtp };

@@ -1,15 +1,15 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-/**
- * Send a 6-digit OTP to the given email address via Resend.
- *
- * Required env vars:
- *   RESEND_API_KEY  – from https://resend.com/api-keys
- *   SMTP_EMAIL      – the "from" address (must be verified in Resend,
- *                     or use onboarding@resend.dev for testing)
- */
 async function sendEmailOtp(toEmail, otp) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const transporter = nodemailer.createTransport({
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_EMAIL,      // your Brevo login email
+      pass: process.env.SMTP_PASSWORD    // Brevo SMTP key (not your login password)
+    }
+  });
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -24,17 +24,13 @@ async function sendEmailOtp(toEmail, otp) {
     </div>
   `;
 
-  const { error } = await resend.emails.send({
-    from: `KindNest <${process.env.SMTP_EMAIL || "onboarding@resend.dev"}>`,
+  await transporter.sendMail({
+    from: `"KindNest" <${process.env.SMTP_EMAIL}>`,
     to: toEmail,
     subject: `${otp} – Your KindNest login code`,
     text: `Your KindNest OTP is ${otp}. It expires in 5 minutes. Do not share it with anyone.`,
-    html,
+    html
   });
-
-  if (error) {
-    throw new Error(`Resend error: ${error.message}`);
-  }
 }
 
 module.exports = { sendEmailOtp };

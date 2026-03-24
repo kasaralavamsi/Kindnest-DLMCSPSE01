@@ -7,6 +7,7 @@ const healthRoute = require("./routes/health");
 const authRoute = require("./routes/auth");
 const tasksRoute = require("./routes/tasks");
 const adminRoute = require("./routes/admin");
+const otpRoute = require("./routes/otp");        // ← NEW
 
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
@@ -46,6 +47,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/health", healthRoute);
 app.use("/api/auth", authRoute);
+app.use("/api/auth/otp", otpRoute);    // ← NEW  (POST /api/auth/otp/send & /verify)
 app.use("/api/tasks", tasksRoute);
 app.use("/api/admin", adminRoute);
 

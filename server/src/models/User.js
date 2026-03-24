@@ -8,7 +8,12 @@ const UserSchema = new mongoose.Schema(
     email: { type: String, trim: true, lowercase: true },
     phone: { type: String, trim: true },
 
-    passwordHash: { type: String, required: true, select: false },
+    // Optional – email users authenticate via OTP only (no password)
+    // Phone users always have a passwordHash
+    passwordHash: { type: String, select: false },
+
+    // Tracks whether an email was OTP-verified at registration
+    emailVerified: { type: Boolean, default: false },
 
     role: {
       type: String,

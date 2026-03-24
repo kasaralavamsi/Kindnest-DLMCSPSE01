@@ -7,6 +7,7 @@ const User = require("../models/User");
 const requireAuth = require("../middleware/requireAuth");
 const { splitIdentifier } = require("../utils/normalize");
 
+// Phone-only registration schema (email users go through OTP flow)
 const RegisterSchema = z.object({
   name: z.string().min(2).max(80),
   identifier: z.string().min(3).max(120),
@@ -35,74 +36,98 @@ function signToken(user) {
   return jwt.sign({ sub: user._id.toString(), role: user.role }, secret, { expiresIn });
 }
 
-// POST /api/auth/register
+// ─── POST /api/auth/register  (phone only) ────────────────────────────────────
+// Email users must register via POST /api/auth/otp/register/send + /verify
 router.post("/register", async (req, res, next) => {
   try {
     const parsed = RegisterSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: parsed.error.issues[0]?.message || "Invalid input" });
+      return res.status(400).json({
+        ok: false,
+        error: parsed.error.issues[0]?.message || "Invalid input"
+      });
     }
 
     const { name, identifier, password, role } = parsed.data;
     const { email, phone } = splitIdentifier(identifier);
 
-    if (!email && !phone) {
-      return res.status(400).json({ ok: false, error: "Identifier must be a valid email or phone number" });
+    // Email users must use the OTP registration flow instead
+    if (email) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Email sign-up uses OTP verification — no password needed. " +
+          "Use the 'Create account' form and enter your email to receive a one-time code."
+      });
     }
 
-    // check existing
-    const existing = await User.findOne({
-      $or: [
-        ...(email ? [{ email }] : []),
-        ...(phone ? [{ phone }] : [])
-      ]
-    });
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        error: "Identifier must be a valid phone number (e.g. +91XXXXXXXXXX)"
+      });
+    }
 
+    const existing = await User.findOne({ phone });
     if (existing) {
-      return res.status(409).json({ ok: false, error: "Account already exists with this email/phone" });
+      return res.status(409).json({
+        ok: false,
+        error: "An account already exists with this phone number"
+      });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-
-    const user = await User.create({
-      name,
-      email: email || undefined,
-      phone: phone || undefined,
-      passwordHash,
-      role
-    });
+    const user = await User.create({ name, phone, passwordHash, role });
 
     const token = signToken(user);
     return res.status(201).json({ ok: true, token, user: publicUser(user) });
   } catch (err) {
-    // Handle duplicate key (race condition)
     if (err?.code === 11000) {
-      return res.status(409).json({ ok: false, error: "Email/phone already in use" });
+      return res.status(409).json({ ok: false, error: "Phone number already in use" });
     }
     next(err);
   }
 });
 
-// POST /api/auth/login
+// ─── POST /api/auth/login  (phone only) ───────────────────────────────────────
+// Email users must log in via POST /api/auth/otp/send + /verify
 router.post("/login", async (req, res, next) => {
   try {
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ ok: false, error: parsed.error.issues[0]?.message || "Invalid input" });
+      return res.status(400).json({
+        ok: false,
+        error: parsed.error.issues[0]?.message || "Invalid input"
+      });
     }
 
     const { identifier, password } = parsed.data;
     const { email, phone } = splitIdentifier(identifier);
 
-    if (!email && !phone) {
-      return res.status(400).json({ ok: false, error: "Identifier must be a valid email or phone number" });
+    // Email users must use the OTP login flow
+    if (email) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Email login uses a one-time code — no password required. " +
+          "Enter your email on the login page and we'll send you an OTP."
+      });
     }
 
-    const user = await User.findOne(
-      email ? { email } : { phone }
-    ).select("+passwordHash");
+    if (!phone) {
+      return res.status(400).json({
+        ok: false,
+        error: "Identifier must be a valid phone number"
+      });
+    }
 
+    const user = await User.findOne({ phone }).select("+passwordHash");
     if (!user) {
+      return res.status(401).json({ ok: false, error: "Invalid credentials" });
+    }
+
+    if (!user.passwordHash) {
+      // Safety-net: phone user somehow has no password (shouldn't happen)
       return res.status(401).json({ ok: false, error: "Invalid credentials" });
     }
 
@@ -112,19 +137,17 @@ router.post("/login", async (req, res, next) => {
     }
 
     const token = signToken(user);
-    // re-fetch without passwordHash selection (or just strip it)
     return res.json({ ok: true, token, user: publicUser(user) });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/auth/me (protected)
+// ─── GET /api/auth/me  (protected) ────────────────────────────────────────────
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ ok: false, error: "User not found" });
-
     return res.json({ ok: true, user: publicUser(user) });
   } catch (err) {
     next(err);

@@ -8,6 +8,7 @@ import RequireRole from "./auth/RequireRole";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import OtpLogin from "./pages/OtpLogin";       // ← NEW
 
 import Dashboard from "./pages/Dashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
       <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
       <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
+      <Route path="/otp-login" element={<PublicLayout><OtpLogin /></PublicLayout>} />  {/* ← NEW */}
 
       {/* Protected (navbar lives in AppLayout) */}
       <Route

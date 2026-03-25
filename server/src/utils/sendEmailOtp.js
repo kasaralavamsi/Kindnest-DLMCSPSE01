@@ -1,15 +1,7 @@
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 
 async function sendEmailOtp(toEmail, otp) {
-  const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_EMAIL,      // your Brevo login email
-      pass: process.env.SMTP_PASSWORD    // Brevo SMTP key (not your login password)
-    }
-  });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 32px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -24,9 +16,12 @@ async function sendEmailOtp(toEmail, otp) {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"KindNest" <${process.env.SMTP_EMAIL}>`,
+  await sgMail.send({
     to: toEmail,
+    from: {
+      email: process.env.SENDGRID_FROM_EMAIL,  // must match your verified sender
+      name: "KindNest"
+    },
     subject: `${otp} – Your KindNest login code`,
     text: `Your KindNest OTP is ${otp}. It expires in 5 minutes. Do not share it with anyone.`,
     html

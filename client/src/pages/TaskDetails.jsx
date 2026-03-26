@@ -1,3 +1,12 @@
+/**
+ * TaskDetails.jsx
+ *
+ * CHANGED FROM ORIGINAL:
+ *  - Replaced plain "Address: <b>..." text with MapView component.
+ *
+ * Path: client/src/pages/TaskDetails.jsx
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -14,6 +23,7 @@ import {
 import api from "../api/http";
 import { getCachedUser } from "../auth/storage";
 import CloseTaskDialog from "../components/tasks/CloseTaskDialog";
+import MapView from "../components/MapView";
 
 function categoryLabel(category) {
   const map = {
@@ -49,9 +59,9 @@ export default function TaskDetails() {
   const navigate = useNavigate();
   const user = getCachedUser();
 
-  const [task, setTask] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [task, setTask]       = useState(null);
+  const [busy, setBusy]       = useState(false);
+  const [error, setError]     = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
 
   async function load() {
@@ -76,7 +86,7 @@ export default function TaskDetails() {
     if (!task) return {};
     return {
       acceptToDoneMin: minutesBetween(task.acceptedAt, task.doneAt),
-      doneToCloseMin: minutesBetween(task.doneAt, task.closedAt),
+      doneToCloseMin:  minutesBetween(task.doneAt, task.closedAt),
       totalToCloseMin: minutesBetween(task.createdAt, task.closedAt)
     };
   }, [task]);
@@ -115,9 +125,9 @@ export default function TaskDetails() {
     setTask(updated);
   }
 
-  const canVolunteerAccept = user?.role === "volunteer" && task?.status === "OPEN";
+  const canVolunteerAccept  = user?.role === "volunteer" && task?.status === "OPEN";
   const canVolunteerActions = user?.role === "volunteer" && task?.status === "ACCEPTED";
-  const canRequesterClose = user?.role === "requester" && task?.status === "DONE";
+  const canRequesterClose   = user?.role === "requester"  && task?.status === "DONE";
 
   return (
     <Stack spacing={2.25}>
@@ -128,18 +138,13 @@ export default function TaskDetails() {
         justifyContent="space-between"
       >
         <Stack spacing={0.5}>
-          <Typography variant="h5" sx={{ fontWeight: 900 }}>
-            Task Details
-          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 900 }}>Task Details</Typography>
           <Typography variant="body2" color="text.secondary">
             Review the timeline and take the next action.
           </Typography>
         </Stack>
-
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-          <Button variant="outlined" onClick={() => navigate(-1)} fullWidth>
-            Back
-          </Button>
+          <Button variant="outlined" onClick={() => navigate(-1)} fullWidth>Back</Button>
           <Button variant="outlined" onClick={load} disabled={busy} fullWidth>
             {busy ? "Refreshing..." : "Refresh"}
           </Button>
@@ -152,10 +157,12 @@ export default function TaskDetails() {
         <Alert severity="info">Loading task...</Alert>
       ) : (
         <>
-          {/* Summary */}
+          {/* Summary card */}
           <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider" }}>
             <CardContent sx={{ p: { xs: 2.5, sm: 3.5, md: 4 } }}>
-              <Stack spacing={1.25}>
+              <Stack spacing={1.5}>
+
+                {/* Title + status chips */}
                 <Stack
                   direction={{ xs: "column", sm: "row" }}
                   spacing={1}
@@ -165,7 +172,6 @@ export default function TaskDetails() {
                   <Typography sx={{ fontWeight: 900, fontSize: { xs: 18, sm: 20 } }}>
                     {task.title}
                   </Typography>
-
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     <Chip size="small" label={categoryLabel(task.category)} />
                     <Chip
@@ -177,46 +183,49 @@ export default function TaskDetails() {
                   </Stack>
                 </Stack>
 
-                {task.description ? (
+                {task.description && (
                   <Typography color="text.secondary">{task.description}</Typography>
-                ) : null}
-                {task.address ? (
-                  <Typography variant="body2" color="text.secondary">
-                    Address: <b>{task.address}</b>
-                  </Typography>
-                ) : null}
+                )}
+
+                {/* Map section */}
+                {task.address && (
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography
+                        variant="overline"
+                        color="text.secondary"
+                        sx={{ letterSpacing: 1, mb: 1, display: "block" }}
+                      >
+                        Location
+                      </Typography>
+                      <MapView address={task.address} height={260} />
+                    </Box>
+                  </>
+                )}
 
                 <Divider />
 
-                {/* Key details */}
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                    gap: 1
-                  }}
-                >
+                {/* Key details grid */}
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1 }}>
                   <Typography variant="body2" color="text.secondary">
                     Requester: <b>{task.requesterId?.name || "Unknown"}</b>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Volunteer: <b>{task.volunteerId?.name || "-"}</b>
                   </Typography>
-                  
                   <Typography variant="body2" color="text.secondary">
                     Created: <b>{fmtDate(task.createdAt)}</b>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Needed by: <b>{fmtDate(task.neededBy)}</b>
                   </Typography>
-
                   <Typography variant="body2" color="text.secondary">
                     Accepted: <b>{fmtDate(task.acceptedAt)}</b>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Done: <b>{fmtDate(task.doneAt)}</b>
                   </Typography>
-
                   <Typography variant="body2" color="text.secondary">
                     Closed: <b>{fmtDate(task.closedAt)}</b>
                   </Typography>
@@ -228,13 +237,7 @@ export default function TaskDetails() {
                 <Divider />
 
                 {/* Metrics */}
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
-                    gap: 1
-                  }}
-                >
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 1 }}>
                   <Typography variant="body2" color="text.secondary">
                     Accept → Done: <b>{metrics.acceptToDoneMin ?? "-"} min</b>
                   </Typography>
@@ -246,40 +249,32 @@ export default function TaskDetails() {
                   </Typography>
                 </Box>
 
-                {/* Actions */}
+                {/* Action buttons */}
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
-                  {canVolunteerAccept ? (
-                    <Button variant="contained" onClick={accept} fullWidth>
-                      Accept
-                    </Button>
-                  ) : null}
-
-                  {canVolunteerActions ? (
+                  {canVolunteerAccept && (
+                    <Button variant="contained" onClick={accept} fullWidth>Accept</Button>
+                  )}
+                  {canVolunteerActions && (
                     <>
-                      <Button variant="contained" onClick={markDone} fullWidth>
-                        Mark Done
-                      </Button>
-                      <Button variant="outlined" onClick={reject} fullWidth>
-                        Reject
-                      </Button>
+                      <Button variant="contained" onClick={markDone} fullWidth>Mark Done</Button>
+                      <Button variant="outlined" onClick={reject} fullWidth>Reject</Button>
                     </>
-                  ) : null}
-
-                  {canRequesterClose ? (
+                  )}
+                  {canRequesterClose && (
                     <Button variant="contained" color="secondary" onClick={() => setCloseOpen(true)} fullWidth>
                       Confirm + Close
                     </Button>
-                  ) : null}
+                  )}
                 </Stack>
+
               </Stack>
             </CardContent>
           </Card>
 
-          {/* Timeline */}
+          {/* Timeline card */}
           <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider" }}>
             <CardContent sx={{ p: { xs: 2.5, sm: 3.5, md: 4 } }}>
               <Typography sx={{ fontWeight: 900, mb: 1 }}>Timeline</Typography>
-
               {!task.history?.length ? (
                 <Alert severity="info">No timeline events.</Alert>
               ) : (
@@ -290,12 +285,7 @@ export default function TaskDetails() {
                     .map((h, idx) => (
                       <Box
                         key={idx}
-                        sx={{
-                          border: "1px solid",
-                          borderColor: "divider",
-                          borderRadius: 2,
-                          p: 1.5
-                        }}
+                        sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.5 }}
                       >
                         <Stack
                           direction={{ xs: "column", sm: "row" }}
@@ -303,11 +293,8 @@ export default function TaskDetails() {
                           justifyContent="space-between"
                         >
                           <Typography sx={{ fontWeight: 800 }}>{h.action}</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {fmtDate(h.at)}
-                          </Typography>
+                          <Typography variant="body2" color="text.secondary">{fmtDate(h.at)}</Typography>
                         </Stack>
-
                         <Typography variant="body2" color="text.secondary">
                           By: <b>{h.byUserId?.name || "Unknown"}</b>{" "}
                           {h.byUserId?.role ? `(${h.byUserId.role})` : ""}

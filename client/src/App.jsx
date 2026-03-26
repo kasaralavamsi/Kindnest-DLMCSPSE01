@@ -1,3 +1,12 @@
+/**
+ * App.jsx
+ *
+ * CHANGED FROM ORIGINAL:
+ *  - Removed OtpLogin import and the /otp-login route (OTP flow dropped entirely).
+ *
+ * Path: client/src/App.jsx
+ */
+
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -8,7 +17,6 @@ import RequireRole from "./auth/RequireRole";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import OtpLogin from "./pages/OtpLogin";       // ← NEW
 
 import Dashboard from "./pages/Dashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
@@ -23,7 +31,8 @@ export default function App() {
       <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
       <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
       <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
-      <Route path="/otp-login" element={<PublicLayout><OtpLogin /></PublicLayout>} />  {/* ← NEW */}
+      {/* /otp-login removed — redirect anyone who bookmarked it */}
+      <Route path="/otp-login" element={<Navigate to="/login" replace />} />
 
       {/* Protected (navbar lives in AppLayout) */}
       <Route
@@ -36,7 +45,7 @@ export default function App() {
         {/* Smart redirect by role */}
         <Route path="/app" element={<Dashboard />} />
 
-        {/* Task details – accessible to any authenticated user (backend enforces access) */}
+        {/* Task details – accessible to any authenticated user */}
         <Route path="/app/tasks/:id" element={<TaskDetails />} />
 
         {/* Role dashboards */}
